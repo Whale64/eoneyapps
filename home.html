@@ -1,0 +1,162 @@
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { MessageSquare, Calendar, Activity, Zap, Code, Star, Box, Settings, ArrowRight } from 'lucide-react';
+
+// --- Application Configuration Data ---
+// To customize the apps in the store, edit this array.
+// Icon values must be imported from 'lucide-react'.
+const APPS = [
+  { id: 1, title: "Messaging Suite", description: "Connect with friends and colleagues instantly.", icon: MessageSquare, link: "https://example.com/messaging", bgColor: "bg-blue-500" },
+  { id: 2, title: "Task Planner", description: "Manage your schedule and appointments efficiently.", icon: Calendar, link: "https://example.com/calendar", bgColor: "bg-green-500" },
+  { id: 3, title: "Fitness Tracker", description: "Monitor health goals and track your daily activity.", icon: Activity, link: "https://example.com/activity", bgColor: "bg-red-500" },
+  { id: 4, title: "Flash Cards", description: "Learn quickly with spaced repetition and recall.", icon: Zap, link: "https://example.com/flashcards", bgColor: "bg-yellow-500" },
+  { id: 5, title: "Code Editor Pro", description: "Write and execute code snippets on the go.", icon: Code, link: "https://example.com/code", bgColor: "bg-purple-500" },
+  { id: 6, title: "Inspiration Gallery", description: "Curated collection of art and motivational pieces.", icon: Star, link: "https://example.com/gallery", bgColor: "bg-pink-500" },
+  { id: 7, title: "Inventary Manajer", description: "Organize yer stoock, assets, and bizness resources good-like.", icon: Box, link: "https://example.com/inventory", bgColor: "bg-indigo-500" },
+  { id: 8, title: "Sistem Setings", description: "Confihgur sistim prefs and usre prophil choises.", icon: Settings, link: "https://example.com/settings", bgColor: "bg-teal-500" },
+];
+
+/**
+ * Custom App Tile Component
+ * @param {object} app - The application object from the APPS array.
+ */
+const AppTile = ({ app }) => {
+  const IconComponent = app.icon;
+
+  const handleClick = () => {
+    window.open(app.link, '_blank');
+  };
+
+  return (
+    <div
+      onClick={handleClick}
+      className="
+        flex flex-col items-start p-4 bg-white border border-gray-100 rounded-xl shadow-lg transition
+        duration-300 transform hover:shadow-2xl hover:-translate-y-1 cursor-pointer
+        active:translate-y-0 active:shadow-lg
+        h-full
+      "
+    >
+      {/* Icon and Title */}
+      <div className="flex items-center space-x-4 mb-3">
+        <div className={`p-3 rounded-xl ${app.bgColor} text-white shadow-md`}>
+          <IconComponent size={24} />
+        </div>
+        <h3 className="text-xl font-extrabold text-gray-800">{app.title}</h3>
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-gray-500 mb-4 flex-grow">
+        {app.description}
+      </p>
+
+      {/* Action Link */}
+      <div className="flex items-center text-sm font-semibold text-blue-600 transition duration-150 hover:text-blue-800">
+        Launch App
+        <ArrowRight size={16} className="ml-1" />
+      </div>
+    </div>
+  );
+};
+
+// Main Application Component
+const App = () => {
+  // Firebase State (Standard boilerplate, not directly used for the APPS list)
+  const [db, setDb] = useState(null);
+  const [auth, setAuth] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+  // 1. Initialize Firebase and Auth
+  useEffect(() => {
+    try {
+      const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+      const app = initializeApp(firebaseConfig);
+      const firestore = getFirestore(app);
+      const authInstance = getAuth(app);
+
+      setDb(firestore);
+      setAuth(authInstance);
+
+      // Sign-in logic
+      const authPromise = typeof __initial_auth_token !== 'undefined'
+        ? signInWithCustomToken(authInstance, __initial_auth_token)
+        : signInAnonymously(authInstance);
+
+      authPromise.then((userCredential) => {
+        setUserId(userCredential.user.uid);
+        setLoading(false);
+      }).catch(error => {
+        console.error("Firebase Auth Error:", error);
+        setLoading(false);
+      });
+
+      // Optional: Real-time Auth State listener (already handled by promise above for initial load)
+      // const unsubscribe = onAuthStateChanged(authInstance, (user) => {
+      //   setUserId(user ? user.uid : null);
+      //   setLoading(false);
+      // });
+      // return () => unsubscribe();
+
+    } catch (e) {
+      console.error("Failed to initialize Firebase:", e);
+      setLoading(false);
+    }
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl font-semibold text-gray-600">Loading App Store...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans p-4 sm:p-8">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        .font-sans {
+            font-family: 'Inter', sans-serif;
+        }
+      `}</style>
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <header className="mb-10 text-center sm:text-left">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+            The Gemini App Store
+          </h1>
+          <p className="text-lg text-gray-500">
+            A selection of powerful, customizable applications. Edit the `APPS` array in the code to change this list.
+          </p>
+          {userId && (
+             <p className="text-xs text-gray-400 mt-2">
+               User ID: {userId} (App ID: {appId})
+             </p>
+          )}
+        </header>
+
+        {/* Apps Grid */}
+        <main>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {APPS.map(app => (
+              <AppTile key={app.id} app={app} />
+            ))}
+          </div>
+        </main>
+
+        {/* Footer/Instructions */}
+        <footer className="mt-12 pt-8 border-t border-gray-200 text-center">
+          <p className="text-sm text-gray-400">
+            Click any tile to open the corresponding link in a new tab.
+          </p>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+export default App;
